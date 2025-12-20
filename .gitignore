@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+venv311/
+__pycache__/
+.expo/
+.expo-shared/
+
+# Build files
+web-build/
+*.tar.gz
+*.zip
+shot_analyzer_project.zip
+
+# Logs
+npm-debug.*
+*.log
+
+# Mobile secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# OS files
+.DS_Store
+Thumbs.db

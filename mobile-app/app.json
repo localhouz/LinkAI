@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "LinksAI",
+    "slug": "linksai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B4332"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linksai.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "LinksAI needs camera access to track your golf ball trajectory.",
+        "NSLocationWhenInUseUsageDescription": "LinksAI needs your location to calculate ball landing position.",
+        "NSMotionUsageDescription": "LinksAI needs motion sensors to measure launch angle."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1B4332"
+      },
+      "package": "com.linksai.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "BODY_SENSORS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow LinksAI to access your camera to track golf balls.",
+          "microphonePermission": "Allow LinksAI to access your microphone."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow LinksAI to use your location to calculate ball landing position.",
+          "locationAlwaysPermission": "Allow LinksAI to use your location.",
+          "locationWhenInUsePermission": "Allow LinksAI to use your location when the app is open.",
+          "isIosBackgroundLocationEnabled": false
+        }
+      ]
+    ]
+  }
+}
