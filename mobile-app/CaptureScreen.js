@@ -260,10 +260,14 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                                 <>
                                     <View style={styles.onboardingStep}>
                                         <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
-                                        <Text style={styles.stepText}>Position phone 6-8 feet directly behind the ball.</Text>
+                                        <Text style={styles.stepText}>Set tripod to 3-4 feet (chest height) for best tracking results.</Text>
                                     </View>
                                     <View style={styles.onboardingStep}>
                                         <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                                        <Text style={styles.stepText}>Position phone 6-8 feet directly behind the ball.</Text>
+                                    </View>
+                                    <View style={styles.onboardingStep}>
+                                        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
                                         <Text style={styles.stepText}>Align the red target dot with your golf ball.</Text>
                                     </View>
                                 </>
@@ -280,7 +284,9 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                                 </>
                             )}
                             <View style={styles.onboardingStep}>
-                                <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+                                <View style={styles.stepBadge}>
+                                    <Text style={styles.stepBadgeText}>{trackingMode === 'tripod' ? '4' : '3'}</Text>
+                                </View>
                                 <Text style={styles.stepText}>Lock target and swing after the countdown.</Text>
                             </View>
                         </View>

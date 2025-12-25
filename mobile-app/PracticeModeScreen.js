@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getClubs, recordShotForClub, savePracticeSession } from './services/storage';
+import CaptureScreen from './CaptureScreen';
 
 // Safe haptics - won't crash if not installed
 let Haptics = null;
@@ -36,6 +37,7 @@ export default function PracticeModeScreen({ onBack }) {
     const [shots, setShots] = useState([]);
     const [showClubPicker, setShowClubPicker] = useState(false);
     const [sessionStartTime, setSessionStartTime] = useState(Date.now());
+    const [showARTracking, setShowARTracking] = useState(false);
 
     useEffect(() => {
         loadClubs();
@@ -49,7 +51,7 @@ export default function PracticeModeScreen({ onBack }) {
         }
     };
 
-    const handleAddShot = (distance) => {
+    const handleAddShot = (distance, source = 'manual') => {
         if (!selectedClub) return;
 
         const newShot = {
@@ -58,11 +60,25 @@ export default function PracticeModeScreen({ onBack }) {
             clubName: selectedClub.name,
             distance: distance,
             timestamp: Date.now(),
+            source: source, // 'manual' or 'ar'
         };
 
         setShots([newShot, ...shots]);
         recordShotForClub(selectedClub.id, distance);
         triggerHaptic('impact');
+    };
+
+    const handleARShotResult = (data) => {
+        setShowARTracking(false);
+        if (data && data.carry_distance_yards) {
+            const distance = Math.round(data.carry_distance_yards);
+            handleAddShot(distance, 'ar');
+            Alert.alert(
+                'Shot Tracked!',
+                `${selectedClub?.name || 'Club'}: ${distance} yards`,
+                [{ text: 'OK' }]
+            );
+        }
     };
 
     const handleEndSession = async () => {
@@ -139,6 +155,16 @@ export default function PracticeModeScreen({ onBack }) {
         ];
     };
 
+    // Show AR Tracking screen when active
+    if (showARTracking) {
+        return (
+            <CaptureScreen
+                onClose={() => setShowARTracking(false)}
+                onShotAnalyzed={handleARShotResult}
+            />
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -198,6 +224,21 @@ export default function PracticeModeScreen({ onBack }) {
                             </TouchableOpacity>
                         ))}
                     </View>
+
+                    {/* AR Track Shot Button */}
+                    <TouchableOpacity
+                        style={styles.arTrackButton}
+                        onPress={() => setShowARTracking(true)}
+                    >
+                        <View style={styles.arTrackIconContainer}>
+                            <MaterialCommunityIcons name="camera" size={24} color="#3FB950" />
+                        </View>
+                        <View style={styles.arTrackInfo}>
+                            <Text style={styles.arTrackTitle}>AR Track Shot</Text>
+                            <Text style={styles.arTrackSubtitle}>Use camera to track real shot distance</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#8B949E" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Session Stats */}
@@ -250,6 +291,11 @@ export default function PracticeModeScreen({ onBack }) {
                             <View key={shot.id} style={styles.shotRow}>
                                 <Text style={styles.shotNumber}>#{shots.length - index}</Text>
                                 <Text style={styles.shotClub}>{shot.clubName}</Text>
+                                {shot.source === 'ar' && (
+                                    <View style={styles.arBadge}>
+                                        <Text style={styles.arBadgeText}>AR</Text>
+                                    </View>
+                                )}
                                 <Text style={styles.shotDistance}>{shot.distance} yds</Text>
                             </View>
                         ))}
@@ -262,7 +308,7 @@ export default function PracticeModeScreen({ onBack }) {
                         <MaterialCommunityIcons name="golf-tee" size={64} color="#21262D" />
                         <Text style={styles.emptyTitle}>Ready to Practice</Text>
                         <Text style={styles.emptyText}>
-                            Select a club and tap a distance button after each shot to track your session.
+                            Use quick-add buttons or AR Track Shot to record distances and build your club profile.
                         </Text>
                     </View>
                 )}
@@ -444,6 +490,38 @@ const styles = StyleSheet.create({
         color: '#8B949E',
         marginTop: 2,
     },
+    arTrackButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#161B22',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#21262D',
+    },
+    arTrackIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(63, 185, 80, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+    },
+    arTrackInfo: {
+        flex: 1,
+    },
+    arTrackTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#F0F6FC',
+    },
+    arTrackSubtitle: {
+        fontSize: 12,
+        color: '#8B949E',
+        marginTop: 2,
+    },
     statsSection: {
         marginBottom: 24,
     },
@@ -530,6 +608,18 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#3FB950',
+    },
+    arBadge: {
+        backgroundColor: 'rgba(88, 166, 255, 0.2)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 8,
+    },
+    arBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#58A6FF',
     },
     emptyState: {
         alignItems: 'center',
