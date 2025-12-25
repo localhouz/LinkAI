@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const SETTINGS_KEY = '@golf_tracker_settings';
 
@@ -99,16 +100,22 @@ export default function SettingsScreen({ onClose, currentApiUrl, onApiUrlChange 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>⚙️ Settings</Text>
+                <View style={styles.headerRow}>
+                    <Ionicons name="settings" size={24} color="#FFFFFF" style={{ marginRight: 10 }} />
+                    <Text style={styles.title}>Settings</Text>
+                </View>
                 <TouchableOpacity onPress={onClose}>
-                    <Text style={styles.closeButton}>✕</Text>
+                    <Ionicons name="close" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 {/* Server Settings */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🌐 Server</Text>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons name="web" size={20} color="#00e676" />
+                        <Text style={styles.sectionTitle}>Server</Text>
+                    </View>
 
                     <View style={styles.settingRow}>
                         <Text style={styles.label}>API URL</Text>
@@ -130,7 +137,10 @@ export default function SettingsScreen({ onClose, currentApiUrl, onApiUrlChange 
 
                 {/* Shot Analysis */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🎯 Shot Analysis</Text>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons name="target" size={20} color="#00e676" />
+                        <Text style={styles.sectionTitle}>Shot Analysis</Text>
+                    </View>
 
                     <View style={styles.settingRow}>
                         <Text style={styles.label}>Search Radius (yards)</Text>
@@ -156,13 +166,19 @@ export default function SettingsScreen({ onClose, currentApiUrl, onApiUrlChange 
 
                 {/* Calibration */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📷 Calibration</Text>
+                    <View style={styles.sectionHeader}>
+                        <Ionicons name="camera" size={20} color="#00e676" />
+                        <Text style={styles.sectionTitle}>Calibration</Text>
+                    </View>
 
                     {calibrationData ? (
                         <>
-                            <Text style={styles.calibrationInfo}>
-                                ✅ Camera calibrated
-                            </Text>
+                            <View style={styles.calibrationRow}>
+                                <Ionicons name="checkmark-circle" size={18} color="#00e676" />
+                                <Text style={styles.calibrationInfo}>
+                                    Camera calibrated
+                                </Text>
+                            </View>
                             <Text style={styles.calibrationDetails}>
                                 Transform: {calibrationData.transform || 'Default'}
                             </Text>
@@ -174,15 +190,21 @@ export default function SettingsScreen({ onClose, currentApiUrl, onApiUrlChange 
                             </TouchableOpacity>
                         </>
                     ) : (
-                        <Text style={styles.calibrationInfo}>
-                            ⚠️ Not calibrated. Run calibration from main menu.
-                        </Text>
+                        <View style={styles.calibrationRow}>
+                            <Ionicons name="warning" size={18} color="#FF9800" />
+                            <Text style={styles.calibrationInfo}>
+                                Not calibrated. Run calibration from main menu.
+                            </Text>
+                        </View>
                     )}
                 </View>
 
                 {/* Debug */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🐛 Debug</Text>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons name="bug" size={20} color="#00e676" />
+                        <Text style={styles.sectionTitle}>Debug</Text>
+                    </View>
 
                     <View style={styles.settingRow}>
                         <Text style={styles.label}>Debug Mode</Text>
@@ -205,7 +227,8 @@ export default function SettingsScreen({ onClose, currentApiUrl, onApiUrlChange 
                         style={styles.saveButton}
                         onPress={saveSettings}
                     >
-                        <Text style={styles.saveButtonText}>💾 Save Settings</Text>
+                        <Ionicons name="save" size={20} color="#000" style={{ marginRight: 8 }} />
+                        <Text style={styles.saveButtonText}>Save Settings</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -261,11 +284,25 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 30,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
     sectionTitle: {
         color: '#00e676',
         fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 15,
+        marginLeft: 10,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    calibrationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
     },
     settingRow: {
         flexDirection: 'row',
@@ -300,7 +337,7 @@ const styles = StyleSheet.create({
     calibrationInfo: {
         color: '#aaa',
         fontSize: 14,
-        marginBottom: 10,
+        marginLeft: 8,
     },
     calibrationDetails: {
         color: '#666',
@@ -308,10 +345,12 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     saveButton: {
+        flexDirection: 'row',
         backgroundColor: '#00e676',
         padding: 15,
         borderRadius: 10,
         alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 10,
     },
     saveButtonText: {

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, Animated } from 'react-native';
 import { CameraView } from 'expo-camera';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function CalibrationScreen({ onComplete, onCancel }) {
     const [isDetecting, setIsDetecting] = useState(false);
@@ -117,9 +118,12 @@ export default function CalibrationScreen({ onComplete, onCancel }) {
                         </Text>
                     ) : (
                         <View style={styles.statusBox}>
-                            <Text style={styles.statusText}>
-                                ✓ Detecting... {detectionCount}/30
-                            </Text>
+                            <View style={styles.statusRow}>
+                                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Text style={styles.statusText}>
+                                    Detecting... {detectionCount}/30
+                                </Text>
+                            </View>
                         </View>
                     )}
                 </View>
@@ -127,13 +131,13 @@ export default function CalibrationScreen({ onComplete, onCancel }) {
                 {/* Info Cards */}
                 <View style={styles.infoCards}>
                     <View style={styles.infoCard}>
-                        <Text style={styles.infoIcon}>📷</Text>
+                        <Ionicons name="camera" size={28} color="#00B4D8" />
                         <Text style={styles.infoTitle}>Camera Check</Text>
                         <Text style={styles.infoText}>Tests if camera can see the ball</Text>
                     </View>
 
                     <View style={styles.infoCard}>
-                        <Text style={styles.infoIcon}>🎯</Text>
+                        <MaterialCommunityIcons name="target" size={28} color="#00B4D8" />
                         <Text style={styles.infoTitle}>Detection Test</Text>
                         <Text style={styles.infoText}>Verifies tracking accuracy</Text>
                     </View>
@@ -299,6 +303,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 20,
         marginTop: 30,
+    },
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     statusText: {
         color: '#FFFFFF',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import * as Location from 'expo-location';
-import Svg, { Circle, Path, Rect, Line, Text as SvgText } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RangefinderScreen({ onBack }) {
     const [location, setLocation] = useState(null);
@@ -49,7 +49,7 @@ export default function RangefinderScreen({ onBack }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>GPS Rangefinder</Text>
                 <View style={styles.placeholder} />
@@ -58,10 +58,9 @@ export default function RangefinderScreen({ onBack }) {
             {/* Main Distance Display */}
             <View style={styles.mainDisplay}>
                 <View style={styles.distanceCircle}>
-                    <Svg width={200} height={200} viewBox="0 0 200 200">
-                        <Circle cx="100" cy="100" r="90" fill="none" stroke="#2E7D32" strokeWidth="8" />
-                        <Circle cx="100" cy="100" r="75" fill="none" stroke="#2E7D32" strokeWidth="2" opacity="0.5" />
-                    </Svg>
+                    <View style={styles.iconCircleContainer}>
+                        <MaterialCommunityIcons name="target" size={180} color="rgba(46, 125, 50, 0.4)" />
+                    </View>
                     <View style={styles.distanceContent}>
                         <Text style={styles.distanceValue}>
                             {selectedTarget ? selectedTarget.distance : '---'}
@@ -146,10 +145,17 @@ const styles = StyleSheet.create({
         height: 200,
         justifyContent: 'center',
         alignItems: 'center',
+        position: 'relative',
+    },
+    iconCircleContainer: {
+        position: 'absolute',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     distanceContent: {
         position: 'absolute',
         alignItems: 'center',
+        zIndex: 1,
     },
     distanceValue: {
         color: '#FFFFFF',

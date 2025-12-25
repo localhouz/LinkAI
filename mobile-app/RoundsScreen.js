@@ -1,59 +1,38 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
-import Svg, { Circle, Path, Rect, Line, G, Polygon } from 'react-native-svg';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { getRounds, deleteRound } from './services/storage';
 
 export default function RoundsScreen({ onBack, onStartRound }) {
     const [activeTab, setActiveTab] = useState('recent');
+    const [loading, setLoading] = useState(true);
+    const [rounds, setRounds] = useState([]);
 
-    // Demo rounds data
-    const recentRounds = [
-        {
-            id: 1,
-            date: 'Dec 5, 2024',
-            course: 'Sample Golf Course',
-            score: 82,
-            par: 72,
-            holes: 18,
-            putts: 31,
-            fairways: '9/14',
-            gir: '8/18',
-        },
-        {
-            id: 2,
-            date: 'Dec 1, 2024',
-            course: 'Local Country Club',
-            score: 85,
-            par: 71,
-            holes: 18,
-            putts: 34,
-            fairways: '7/14',
-            gir: '6/18',
-        },
-        {
-            id: 3,
-            date: 'Nov 28, 2024',
-            course: 'Mountain View Golf',
-            score: 79,
-            par: 72,
-            holes: 18,
-            putts: 29,
-            fairways: '11/14',
-            gir: '10/18',
-        },
-        {
-            id: 4,
-            date: 'Nov 24, 2024',
-            course: 'Sample Golf Course',
-            score: 88,
-            par: 72,
-            holes: 18,
-            putts: 36,
-            fairways: '6/14',
-            gir: '5/18',
-        },
-    ];
+    useEffect(() => {
+        loadRounds();
+    }, []);
+
+    const loadRounds = async () => {
+        setLoading(true);
+        try {
+            const loadedRounds = await getRounds();
+            setRounds(loadedRounds);
+        } catch (error) {
+            console.error('Error loading rounds:', error);
+        }
+        setLoading(false);
+    };
+
+    // Get filtered rounds based on active tab
+    const getFilteredRounds = () => {
+        if (activeTab === 'best') {
+            return [...rounds].sort((a, b) => (a.totalScore || 999) - (b.totalScore || 999)).slice(0, 10);
+        }
+        return rounds;
+    };
 
     const getScoreDiff = (score, par) => {
+        if (!score || !par) return { text: '--', color: '#8B949E' };
         const diff = score - par;
         if (diff === 0) return { text: 'E', color: '#4CAF50' };
         if (diff > 0) return { text: `+${diff}`, color: '#f44336' };
@@ -62,19 +41,17 @@ export default function RoundsScreen({ onBack, onStartRound }) {
 
     // Flag icon for course
     const FlagIcon = () => (
-        <Svg width={24} height={24} viewBox="0 0 100 100">
-            <Rect x="48" y="20" width="4" height="65" fill="#4CAF50" />
-            <Polygon points="52,20 80,32 52,44" fill="#f44336" />
-            <Circle cx="50" cy="88" r="8" fill="#4CAF50" opacity="0.5" />
-        </Svg>
+        <MaterialCommunityIcons name="flag-variant" size={24} color="#4CAF50" />
     );
+
+    const recentRounds = getFilteredRounds();
 
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Rounds</Text>
                 <View style={styles.placeholder} />
@@ -111,65 +88,114 @@ export default function RoundsScreen({ onBack, onStartRound }) {
             {/* Quick Stats */}
             <View style={styles.quickStats}>
                 <View style={styles.quickStatItem}>
-                    <Text style={styles.quickStatValue}>{recentRounds.length}</Text>
+                    <Text style={styles.quickStatValue}>{rounds.length}</Text>
                     <Text style={styles.quickStatLabel}>Total Rounds</Text>
                 </View>
                 <View style={styles.quickStatItem}>
-                    <Text style={styles.quickStatValue}>82.3</Text>
+                    <Text style={styles.quickStatValue}>
+                        {rounds.length > 0
+                            ? Math.round(rounds.filter(r => r.totalScore).reduce((sum, r) => sum + r.totalScore, 0) / rounds.filter(r => r.totalScore).length || '--')
+                            : '--'
+                        }
+                    </Text>
                     <Text style={styles.quickStatLabel}>Avg Score</Text>
                 </View>
                 <View style={styles.quickStatItem}>
-                    <Text style={styles.quickStatValue}>79</Text>
+                    <Text style={styles.quickStatValue}>
+                        {rounds.length > 0 && rounds.some(r => r.totalScore)
+                            ? Math.min(...rounds.filter(r => r.totalScore).map(r => r.totalScore))
+                            : '--'
+                        }
+                    </Text>
                     <Text style={styles.quickStatLabel}>Best Round</Text>
                 </View>
             </View>
 
             {/* Rounds List */}
             <ScrollView style={styles.roundsList}>
-                {recentRounds.map(round => {
-                    const scoreDiff = getScoreDiff(round.score, round.par);
-                    return (
-                        <TouchableOpacity key={round.id} style={styles.roundCard}>
-                            <View style={styles.roundHeader}>
-                                <View style={styles.roundCourseInfo}>
-                                    <FlagIcon />
-                                    <View style={styles.roundCourseText}>
-                                        <Text style={styles.roundCourseName}>{round.course}</Text>
-                                        <Text style={styles.roundDate}>{round.date}</Text>
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#3FB950" />
+                    </View>
+                ) : recentRounds.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <MaterialCommunityIcons name="golf" size={64} color="#21262D" />
+                        <Text style={styles.emptyText}>No rounds yet</Text>
+                        <Text style={styles.emptySubtext}>Start your first round to track your progress</Text>
+                    </View>
+                ) : (
+                    recentRounds.map(round => {
+                        const scoreDiff = getScoreDiff(round.totalScore, round.par);
+                        const roundDate = round.timestamp
+                            ? new Date(round.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'Unknown Date';
+
+                        // Calculate stats from holes if available
+                        let totalPutts = '--';
+                        let fairwaysHit = '--';
+                        let girCount = '--';
+
+                        if (round.holes) {
+                            const holesWithPutts = round.holes.filter(h => h.putts !== undefined);
+                            const holesWithFairway = round.holes.filter(h => h.fairwayHit !== undefined);
+                            const holesWithGir = round.holes.filter(h => h.greenInReg !== undefined);
+
+                            if (holesWithPutts.length > 0) {
+                                totalPutts = holesWithPutts.reduce((sum, h) => sum + h.putts, 0);
+                            }
+                            if (holesWithFairway.length > 0) {
+                                const fwHit = holesWithFairway.filter(h => h.fairwayHit).length;
+                                fairwaysHit = `${fwHit}/${holesWithFairway.length}`;
+                            }
+                            if (holesWithGir.length > 0) {
+                                const gir = holesWithGir.filter(h => h.greenInReg).length;
+                                girCount = `${gir}/${holesWithGir.length}`;
+                            }
+                        }
+
+                        return (
+                            <TouchableOpacity key={round.id} style={styles.roundCard}>
+                                <View style={styles.roundHeader}>
+                                    <View style={styles.roundCourseInfo}>
+                                        <FlagIcon />
+                                        <View style={styles.roundCourseText}>
+                                            <Text style={styles.roundCourseName}>{round.courseName || 'Unknown Course'}</Text>
+                                            <Text style={styles.roundDate}>{roundDate}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.roundScoreBox}>
+                                        <Text style={styles.roundScore}>{round.totalScore || '--'}</Text>
+                                        <Text style={[styles.roundScoreDiff, { color: scoreDiff.color }]}>
+                                            {scoreDiff.text}
+                                        </Text>
                                     </View>
                                 </View>
-                                <View style={styles.roundScoreBox}>
-                                    <Text style={styles.roundScore}>{round.score}</Text>
-                                    <Text style={[styles.roundScoreDiff, { color: scoreDiff.color }]}>
-                                        {scoreDiff.text}
-                                    </Text>
-                                </View>
-                            </View>
 
-                            <View style={styles.roundStats}>
-                                <View style={styles.roundStatItem}>
-                                    <Text style={styles.roundStatValue}>{round.putts}</Text>
-                                    <Text style={styles.roundStatLabel}>Putts</Text>
+                                <View style={styles.roundStats}>
+                                    <View style={styles.roundStatItem}>
+                                        <Text style={styles.roundStatValue}>{totalPutts}</Text>
+                                        <Text style={styles.roundStatLabel}>Putts</Text>
+                                    </View>
+                                    <View style={styles.roundStatDivider} />
+                                    <View style={styles.roundStatItem}>
+                                        <Text style={styles.roundStatValue}>{fairwaysHit}</Text>
+                                        <Text style={styles.roundStatLabel}>FW Hit</Text>
+                                    </View>
+                                    <View style={styles.roundStatDivider} />
+                                    <View style={styles.roundStatItem}>
+                                        <Text style={styles.roundStatValue}>{girCount}</Text>
+                                        <Text style={styles.roundStatLabel}>GIR</Text>
+                                    </View>
+                                    <View style={styles.roundStatDivider} />
+                                    <View style={styles.roundStatItem}>
+                                        <Text style={styles.roundStatValue}>{round.holesPlayed || 18}</Text>
+                                        <Text style={styles.roundStatLabel}>Holes</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.roundStatDivider} />
-                                <View style={styles.roundStatItem}>
-                                    <Text style={styles.roundStatValue}>{round.fairways}</Text>
-                                    <Text style={styles.roundStatLabel}>FW Hit</Text>
-                                </View>
-                                <View style={styles.roundStatDivider} />
-                                <View style={styles.roundStatItem}>
-                                    <Text style={styles.roundStatValue}>{round.gir}</Text>
-                                    <Text style={styles.roundStatLabel}>GIR</Text>
-                                </View>
-                                <View style={styles.roundStatDivider} />
-                                <View style={styles.roundStatItem}>
-                                    <Text style={styles.roundStatValue}>{round.holes}</Text>
-                                    <Text style={styles.roundStatLabel}>Holes</Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
+                            </TouchableOpacity>
+                        );
+                    })
+                )}
 
                 <View style={{ height: 120 }} />
             </ScrollView>
@@ -188,6 +214,29 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0A1612',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyText: {
+        color: '#8B949E',
+        fontSize: 18,
+        marginTop: 16,
+        fontWeight: '600',
+    },
+    emptySubtext: {
+        color: '#484F58',
+        fontSize: 14,
+        marginTop: 8,
+        textAlign: 'center',
+        paddingHorizontal: 40,
     },
     header: {
         flexDirection: 'row',

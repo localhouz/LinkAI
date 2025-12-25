@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import * as Location from 'expo-location';
-import Svg, { Path, Circle, Rect, Polygon } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Google Places API Key
 const GOOGLE_PLACES_API_KEY = 'AIzaSyDlhMcq6aIe3dQk4MHNHkZTg-LDkZAtawo';
@@ -162,18 +162,11 @@ export default function CourseSelectScreen({ onBack, onStartRound }) {
 
     // Icons
     const LocationIcon = () => (
-        <Svg width={16} height={16} viewBox="0 0 100 100">
-            <Circle cx="50" cy="50" r="15" fill="#3FB950" />
-            <Circle cx="50" cy="50" r="35" fill="none" stroke="#3FB950" strokeWidth="4" opacity="0.5" />
-        </Svg>
+        <MaterialCommunityIcons name="crosshairs-gps" size={18} color="#3FB950" />
     );
 
     const FlagIcon = () => (
-        <Svg width={34} height={48} viewBox="0 0 40 60">
-            <Rect x="18" y="12" width="3" height="40" fill="#3FB950" />
-            <Polygon points="21,12 36,19 21,26" fill="#F85149" />
-            <Circle cx="20" cy="52" r="4" fill="#3FB950" opacity="0.5" />
-        </Svg>
+        <MaterialCommunityIcons name="flag-variant" size={24} color="#3FB950" />
     );
 
     const renderRating = (rating, totalRatings) => {
@@ -193,7 +186,7 @@ export default function CourseSelectScreen({ onBack, onStartRound }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#58A6FF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Select Course</Text>
                 <View style={styles.headerPlaceholder} />
@@ -207,7 +200,7 @@ export default function CourseSelectScreen({ onBack, onStartRound }) {
                         courses.length > 0 ? `${courses.length} courses found` :
                             'Tap to find nearby courses'}
                 </Text>
-                <Text style={styles.refreshText}>↻</Text>
+                <Ionicons name="refresh" size={18} color="#3FB950" />
             </TouchableOpacity>
 
             {/* Search */}

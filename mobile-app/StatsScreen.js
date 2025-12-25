@@ -1,29 +1,39 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
-import Svg, { Circle, Path, Rect, Line, G } from 'react-native-svg';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { getStats, getRounds } from './services/storage';
 
 export default function StatsScreen({ onBack }) {
     const [selectedStat, setSelectedStat] = useState('overview');
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        handicap: null,
+        roundsPlayed: 0,
+        averageScore: null,
+        bestScore: null,
+        worstScore: null,
+        fairwaysHit: null,
+        greensInReg: null,
+        avgPutts: null,
+    });
+    const [recentRounds, setRecentRounds] = useState([]);
 
-    // Demo stats data
-    const stats = {
-        handicap: 12.4,
-        roundsPlayed: 24,
-        avgScore: 84,
-        bestScore: 78,
-        fairwaysHit: 58,
-        greensInReg: 42,
-        avgPutts: 31.2,
-        upAndDown: 45,
+    useEffect(() => {
+        loadStats();
+    }, []);
+
+    const loadStats = async () => {
+        setLoading(true);
+        try {
+            const loadedStats = await getStats();
+            const loadedRounds = await getRounds();
+            setStats(loadedStats);
+            setRecentRounds(loadedRounds.slice(0, 5));
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+        setLoading(false);
     };
-
-    const recentRounds = [
-        { date: 'Dec 5', course: 'Sample GC', score: 82, par: 72 },
-        { date: 'Dec 1', course: 'Local CC', score: 85, par: 71 },
-        { date: 'Nov 28', course: 'Mountain View', score: 79, par: 72 },
-        { date: 'Nov 24', course: 'Sample GC', score: 88, par: 72 },
-        { date: 'Nov 20', course: 'Lakeside', score: 84, par: 70 },
-    ];
 
     // Simple bar chart component
     const BarChart = ({ data, maxValue }) => (
@@ -44,20 +54,35 @@ export default function StatsScreen({ onBack }) {
         </View>
     );
 
-    const scoreData = [
-        { label: 'Dec', value: 82 },
-        { label: 'Nov', value: 84 },
-        { label: 'Oct', value: 86 },
-        { label: 'Sep', value: 88 },
-        { label: 'Aug', value: 85 },
-    ];
+    // Generate score trend from recent rounds
+    const scoreData = recentRounds.slice(0, 5).reverse().map((round, index) => ({
+        label: new Date(round.timestamp).toLocaleDateString('en-US', { month: 'short' }),
+        value: round.totalScore || 0,
+    }));
+
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Statistics</Text>
+                    <View style={styles.placeholder} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#3FB950" />
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Statistics</Text>
                 <View style={styles.placeholder} />
@@ -66,21 +91,10 @@ export default function StatsScreen({ onBack }) {
             <ScrollView style={styles.scrollView}>
                 {/* Handicap Card */}
                 <View style={styles.handicapCard}>
-                    <View style={styles.handicapCircle}>
-                        <Svg width={140} height={140} viewBox="0 0 140 140">
-                            <Circle cx="70" cy="70" r="60" fill="none" stroke="#1B5E20" strokeWidth="8" />
-                            <Circle
-                                cx="70" cy="70" r="60"
-                                fill="none"
-                                stroke="#4CAF50"
-                                strokeWidth="8"
-                                strokeLinecap="round"
-                                strokeDasharray={`${(1 - stats.handicap / 36) * 377} 377`}
-                                transform="rotate(-90 70 70)"
-                            />
-                        </Svg>
-                        <View style={styles.handicapContent}>
-                            <Text style={styles.handicapValue}>{stats.handicap}</Text>
+                    <View style={styles.handicapIconContainer}>
+                        <MaterialCommunityIcons name="trophy-variant" size={80} color="#FFD700" />
+                        <View style={styles.handicapOverlayText}>
+                            <Text style={styles.handicapValue}>{stats.handicap ?? '--'}</Text>
                             <Text style={styles.handicapLabel}>HANDICAP</Text>
                         </View>
                     </View>
@@ -90,54 +104,56 @@ export default function StatsScreen({ onBack }) {
                             <Text style={styles.statLabel}>Rounds</Text>
                         </View>
                         <View style={styles.handicapStat}>
-                            <Text style={styles.statValue}>{stats.avgScore}</Text>
+                            <Text style={styles.statValue}>{stats.averageScore ?? '--'}</Text>
                             <Text style={styles.statLabel}>Avg Score</Text>
                         </View>
                         <View style={styles.handicapStat}>
-                            <Text style={styles.statValue}>{stats.bestScore}</Text>
+                            <Text style={styles.statValue}>{stats.bestScore ?? '--'}</Text>
                             <Text style={styles.statLabel}>Best</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* Score Trend */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>SCORE TREND</Text>
-                    <View style={styles.chartCard}>
-                        <BarChart data={scoreData} maxValue={100} />
+                {scoreData.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>SCORE TREND</Text>
+                        <View style={styles.chartCard}>
+                            <BarChart data={scoreData} maxValue={100} />
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* Performance Stats */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>PERFORMANCE</Text>
                     <View style={styles.performanceGrid}>
                         <View style={styles.performanceCard}>
-                            <Text style={styles.performanceValue}>{stats.fairwaysHit}%</Text>
+                            <Text style={styles.performanceValue}>{stats.fairwaysHit ?? '--'}%</Text>
                             <Text style={styles.performanceLabel}>Fairways Hit</Text>
                             <View style={styles.progressBar}>
-                                <View style={[styles.progressFill, { width: `${stats.fairwaysHit}%` }]} />
+                                <View style={[styles.progressFill, { width: `${stats.fairwaysHit ?? 0}%` }]} />
                             </View>
                         </View>
                         <View style={styles.performanceCard}>
-                            <Text style={styles.performanceValue}>{stats.greensInReg}%</Text>
+                            <Text style={styles.performanceValue}>{stats.greensInReg ?? '--'}%</Text>
                             <Text style={styles.performanceLabel}>Greens in Reg</Text>
                             <View style={styles.progressBar}>
-                                <View style={[styles.progressFill, { width: `${stats.greensInReg}%` }]} />
+                                <View style={[styles.progressFill, { width: `${stats.greensInReg ?? 0}%` }]} />
                             </View>
                         </View>
                         <View style={styles.performanceCard}>
-                            <Text style={styles.performanceValue}>{stats.avgPutts}</Text>
+                            <Text style={styles.performanceValue}>{stats.avgPutts ?? '--'}</Text>
                             <Text style={styles.performanceLabel}>Avg Putts</Text>
                             <View style={styles.progressBar}>
-                                <View style={[styles.progressFill, { width: `${(36 - stats.avgPutts) / 36 * 100}%` }]} />
+                                <View style={[styles.progressFill, { width: stats.avgPutts ? `${Math.max(0, (36 - stats.avgPutts) / 36 * 100)}%` : '0%' }]} />
                             </View>
                         </View>
                         <View style={styles.performanceCard}>
-                            <Text style={styles.performanceValue}>{stats.upAndDown}%</Text>
-                            <Text style={styles.performanceLabel}>Up & Down</Text>
+                            <Text style={styles.performanceValue}>{stats.worstScore ?? '--'}</Text>
+                            <Text style={styles.performanceLabel}>Worst Score</Text>
                             <View style={styles.progressBar}>
-                                <View style={[styles.progressFill, { width: `${stats.upAndDown}%` }]} />
+                                <View style={[styles.progressFill, { width: '0%' }]} />
                             </View>
                         </View>
                     </View>
@@ -146,23 +162,35 @@ export default function StatsScreen({ onBack }) {
                 {/* Recent Rounds */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>RECENT ROUNDS</Text>
-                    {recentRounds.map((round, index) => (
-                        <View key={index} style={styles.roundItem}>
-                            <View style={styles.roundInfo}>
-                                <Text style={styles.roundDate}>{round.date}</Text>
-                                <Text style={styles.roundCourse}>{round.course}</Text>
-                            </View>
-                            <View style={styles.roundScore}>
-                                <Text style={styles.roundScoreValue}>{round.score}</Text>
-                                <Text style={[
-                                    styles.roundScoreDiff,
-                                    { color: round.score <= round.par ? '#4CAF50' : '#f44336' }
-                                ]}>
-                                    {round.score <= round.par ? `${round.score - round.par}` : `+${round.score - round.par}`}
-                                </Text>
-                            </View>
+                    {recentRounds.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <MaterialCommunityIcons name="golf" size={48} color="#21262D" />
+                            <Text style={styles.emptyText}>No rounds played yet</Text>
+                            <Text style={styles.emptySubtext}>Complete a round to see your stats here</Text>
                         </View>
-                    ))}
+                    ) : (
+                        recentRounds.map((round, index) => (
+                            <View key={index} style={styles.roundItem}>
+                                <View style={styles.roundInfo}>
+                                    <Text style={styles.roundDate}>
+                                        {new Date(round.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </Text>
+                                    <Text style={styles.roundCourse}>{round.courseName || 'Unknown Course'}</Text>
+                                </View>
+                                <View style={styles.roundScore}>
+                                    <Text style={styles.roundScoreValue}>{round.totalScore || '--'}</Text>
+                                    {round.totalScore && round.par && (
+                                        <Text style={[
+                                            styles.roundScoreDiff,
+                                            { color: round.totalScore <= round.par ? '#4CAF50' : '#f44336' }
+                                        ]}>
+                                            {round.totalScore <= round.par ? `${round.totalScore - round.par}` : `+${round.totalScore - round.par}`}
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        ))
+                    )}
                 </View>
 
                 <View style={{ height: 100 }} />
@@ -175,6 +203,27 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0A1612',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 40,
+        backgroundColor: 'rgba(33, 38, 45, 0.5)',
+        borderRadius: 12,
+    },
+    emptyText: {
+        color: '#8B949E',
+        fontSize: 16,
+        marginTop: 12,
+    },
+    emptySubtext: {
+        color: '#484F58',
+        fontSize: 13,
+        marginTop: 4,
     },
     header: {
         flexDirection: 'row',
@@ -209,15 +258,17 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
     },
-    handicapCircle: {
+    handicapIconContainer: {
         width: 140,
         height: 140,
         justifyContent: 'center',
         alignItems: 'center',
+        position: 'relative',
     },
-    handicapContent: {
+    handicapOverlayText: {
         position: 'absolute',
         alignItems: 'center',
+        top: '55%',
     },
     handicapValue: {
         color: '#FFFFFF',

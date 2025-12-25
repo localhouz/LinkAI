@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, Switch } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen({ onBack }) {
     const [notifications, setNotifications] = useState(true);
@@ -20,10 +20,7 @@ export default function ProfileScreen({ onBack }) {
     // Profile avatar placeholder
     const Avatar = () => (
         <View style={styles.avatar}>
-            <Svg width={60} height={60} viewBox="0 0 100 100">
-                <Circle cx="50" cy="35" r="25" fill="#4CAF50" />
-                <Path d="M 15 95 Q 15 60, 50 60 T 85 95" fill="#4CAF50" />
-            </Svg>
+            <Ionicons name="person" size={40} color="#4CAF50" />
         </View>
     );
 
@@ -33,7 +30,9 @@ export default function ProfileScreen({ onBack }) {
             onPress={onPress}
             disabled={isSwitch}
         >
-            <Text style={styles.menuIcon}>{icon}</Text>
+            <View style={styles.menuIconContainer}>
+                <MaterialCommunityIcons name={icon} size={22} color="#4CAF50" />
+            </View>
             <Text style={styles.menuLabel}>{label}</Text>
             {isSwitch ? (
                 <Switch
@@ -45,7 +44,7 @@ export default function ProfileScreen({ onBack }) {
             ) : (
                 <View style={styles.menuRight}>
                     {value && <Text style={styles.menuValue}>{value}</Text>}
-                    <Text style={styles.menuArrow}>›</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#4CAF50" />
                 </View>
             )}
         </TouchableOpacity>
@@ -56,7 +55,7 @@ export default function ProfileScreen({ onBack }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <View style={styles.placeholder} />
@@ -99,21 +98,21 @@ export default function ProfileScreen({ onBack }) {
                     <Text style={styles.sectionTitle}>PREFERENCES</Text>
 
                     <MenuItem
-                        icon="🔔"
+                        icon="bell-outline"
                         label="Notifications"
                         isSwitch
                         switchValue={notifications}
                         onSwitchChange={setNotifications}
                     />
                     <MenuItem
-                        icon="🎥"
+                        icon="video-outline"
                         label="Auto-Record Shots"
                         isSwitch
                         switchValue={autoRecord}
                         onSwitchChange={setAutoRecord}
                     />
                     <MenuItem
-                        icon="📏"
+                        icon="ruler"
                         label="Use Metric Units"
                         isSwitch
                         switchValue={metricUnits}
@@ -125,21 +124,21 @@ export default function ProfileScreen({ onBack }) {
                     <Text style={styles.sectionTitle}>ACCOUNT</Text>
 
                     <MenuItem
-                        icon="⛳"
+                        icon="golf"
                         label="My Clubs"
                         value="14 clubs"
                     />
                     <MenuItem
-                        icon="🏠"
+                        icon="home-outline"
                         label="Home Course"
                         value="Sample GC"
                     />
                     <MenuItem
-                        icon="📊"
+                        icon="file-export-outline"
                         label="Export Data"
                     />
                     <MenuItem
-                        icon="🔒"
+                        icon="lock-outline"
                         label="Privacy Settings"
                     />
                 </View>
@@ -148,19 +147,19 @@ export default function ProfileScreen({ onBack }) {
                     <Text style={styles.sectionTitle}>SUPPORT</Text>
 
                     <MenuItem
-                        icon="❓"
+                        icon="help-circle-outline"
                         label="Help & FAQ"
                     />
                     <MenuItem
-                        icon="📧"
+                        icon="email-outline"
                         label="Contact Support"
                     />
                     <MenuItem
-                        icon="⭐"
+                        icon="star-outline"
                         label="Rate the App"
                     />
                     <MenuItem
-                        icon="📋"
+                        icon="file-document-outline"
                         label="Terms & Privacy"
                     />
                 </View>
@@ -171,7 +170,7 @@ export default function ProfileScreen({ onBack }) {
                 </TouchableOpacity>
 
                 {/* Version */}
-                <Text style={styles.versionText}>Golf Tracker Pro v1.0.0</Text>
+                <Text style={styles.versionText}>LinksAI v1.0.0</Text>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
@@ -301,9 +300,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 8,
     },
-    menuIcon: {
-        fontSize: 20,
-        marginRight: 14,
+    menuIconContainer: {
+        width: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
     },
     menuLabel: {
         flex: 1,

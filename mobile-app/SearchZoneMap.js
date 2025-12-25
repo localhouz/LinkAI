@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Circle, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function SearchZoneMap({ shotData, onComplete }) {
     const [userLocation, setUserLocation] = useState(null);
@@ -99,7 +100,7 @@ export default function SearchZoneMap({ shotData, onComplete }) {
         const yards = distanceToZone * 1.09361;
 
         if (distanceToZone < search_zone.radius_meters) {
-            return '🎯 IN SEARCH ZONE';
+            return 'IN SEARCH ZONE';
         }
 
         const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
@@ -156,7 +157,7 @@ export default function SearchZoneMap({ shotData, onComplete }) {
                         description={`${name} • ${carry_distance_yards.toFixed(0)} yards`}
                     >
                         <View style={[styles.marker, { backgroundColor: color }]}>
-                            <Text style={styles.markerText}>⛳</Text>
+                            <MaterialCommunityIcons name="flag-variant" size={20} color="#FFFFFF" />
                         </View>
                     </Marker>
 
@@ -208,7 +209,7 @@ export default function SearchZoneMap({ shotData, onComplete }) {
                     <>
                         <View style={styles.tipBox}>
                             <Text style={styles.tipText}>
-                                🎯 You're in the search zone! Look around for your ball within {search_zone.radius_yards.toFixed(0)} yards of the flag.
+                                You're in the search zone! Look around for your ball within {search_zone.radius_yards.toFixed(0)} yards of the flag.
                             </Text>
                         </View>
 
@@ -234,6 +235,7 @@ export default function SearchZoneMap({ shotData, onComplete }) {
                             style={styles.backButton}
                             onPress={handleDoneSearching}
                         >
+                            <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
                             <Text style={styles.backButtonText}>Cancel</Text>
                         </TouchableOpacity>
                     </>
@@ -368,10 +370,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     backButton: {
+        flexDirection: 'row',
         backgroundColor: '#2A2A2A',
         paddingVertical: 16,
         borderRadius: 10,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     backButtonText: {
         color: '#FFFFFF',

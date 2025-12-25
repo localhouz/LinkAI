@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ShotSelector({ analysisData, onSelectShot, onCancel }) {
     const [selectedKey, setSelectedKey] = useState(null);
@@ -40,25 +41,25 @@ export default function ShotSelector({ analysisData, onSelectShot, onCancel }) {
         {
             title: 'Ball Curved Right',
             shots: [
-                { key: 'high_slice', label: 'High Slice', icon: '↗️' },
-                { key: 'medium_slice', label: 'Medium Slice', icon: '➡️' },
-                { key: 'low_fade', label: 'Low Fade', icon: '⤴️' },
+                { key: 'high_slice', label: 'High Slice', icon: 'arrow-top-right' },
+                { key: 'medium_slice', label: 'Medium Slice', icon: 'arrow-right-bold' },
+                { key: 'low_fade', label: 'Low Fade', icon: 'tray-arrow-up' },
             ]
         },
         {
             title: 'Ball Went Straight',
             shots: [
-                { key: 'straight', label: 'Straight', icon: '⬆️' },
-                { key: 'high_balloon', label: 'High & Short (Ballooned)', icon: '🎈' },
+                { key: 'straight', label: 'Straight', icon: 'arrow-up-bold' },
+                { key: 'high_balloon', label: 'High & Short (Ballooned)', icon: 'arrow-up-circle' },
             ]
         },
         {
             title: 'Ball Curved Left',
             shots: [
-                { key: 'low_draw', label: 'Low Draw', icon: '⤵️' },
-                { key: 'medium_hook', label: 'Medium Hook', icon: '⬅️' },
-                { key: 'high_hook', label: 'High Hook', icon: '↖️' },
-                { key: 'low_snap_hook', label: 'Low Snap Hook', icon: '↙️' },
+                { key: 'low_draw', label: 'Low Draw', icon: 'tray-arrow-up' },
+                { key: 'medium_hook', label: 'Medium Hook', icon: 'arrow-left-bold' },
+                { key: 'high_hook', label: 'High Hook', icon: 'arrow-top-left' },
+                { key: 'low_snap_hook', label: 'Low Snap Hook', icon: 'arrow-bottom-left' },
             ]
         },
     ];
@@ -119,7 +120,16 @@ export default function ShotSelector({ analysisData, onSelectShot, onCancel }) {
                                     onPress={() => handleSelectShot(key)}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.shotIcon}>{icon}</Text>
+                                    <View style={styles.shotIconContainer}>
+                                        <MaterialCommunityIcons
+                                            name={icon}
+                                            size={32}
+                                            color={isSelected ? '#3FB950' : '#8B949E'}
+                                            style={[
+                                                group.title.includes('Left') && icon === 'tray-arrow-up' && { transform: [{ scaleX: -1 }] }
+                                            ]}
+                                        />
+                                    </View>
 
                                     <View style={styles.shotInfo}>
                                         <Text style={styles.shotName}>{label}</Text>
@@ -133,7 +143,7 @@ export default function ShotSelector({ analysisData, onSelectShot, onCancel }) {
 
                                     {isSelected && (
                                         <View style={styles.selectedBadge}>
-                                            <Text style={styles.selectedText}>✓</Text>
+                                            <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -251,11 +261,11 @@ const styles = StyleSheet.create({
         borderColor: '#00B4D8',
         borderWidth: 2,
     },
-    shotIcon: {
-        fontSize: 32,
-        marginRight: 16,
+    shotIconContainer: {
         width: 40,
-        textAlign: 'center',
+        marginRight: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     shotInfo: {
         flex: 1,

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import * as Location from 'expo-location';
-import Svg, { Circle, Path, Rect, Line, Polygon, G } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline, Circle as MapCircle, Polygon as MapPolygon } from 'react-native-maps';
+import CaptureScreen from './CaptureScreen';
+import ARShotSelector from './ARShotSelector';
+import ARPuttingOverlay from './ARPuttingOverlay';
+import { saveRound } from './services/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -13,10 +17,23 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
     const [activeTab, setActiveTab] = useState('map'); // 'map' | 'scorecard' | 'rangefinder'
     const [currentHole, setCurrentHole] = useState(1);
     const [scores, setScores] = useState({});
+    const [putts, setPutts] = useState({}); // { 1: 2, 2: 3, ... }
+    const [fairways, setFairways] = useState({}); // { 1: true, 2: false, ... } - only for par 4/5
+    const [greens, setGreens] = useState({}); // { 1: true, 2: false, ... } - GIR
     const [location, setLocation] = useState(null);
     const [watchId, setWatchId] = useState(null);
     const [courseFeatures, setCourseFeatures] = useState(null);
     const [featuresLoading, setFeaturesLoading] = useState(false);
+
+
+    // AR States
+    const [arMode, setArMode] = useState('none'); // 'none' | 'tracking' | 'selector' | 'putt'
+    const [shotAnalysisData, setShotAnalysisData] = useState(null);
+    const [arExpanded, setArExpanded] = useState(false);
+    const [ballLandingPoint, setBallLandingPoint] = useState(null);
+    const [animatedTracer, setAnimatedTracer] = useState([]); // Array of tracked points for animation
+    const [isTracing, setIsTracing] = useState(false);
+    const [liveTelemetry, setLiveTelemetry] = useState(null);
 
     // Fetch real course features from backend (greens, tees, fairways, bunkers, water)
     useEffect(() => {
@@ -148,13 +165,77 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
         return diff > 0 ? `+${diff}` : `${diff}`;
     };
 
+    // Putts functions
+    const updatePutts = (delta) => {
+        const current = putts[currentHole] || 2;
+        const newPutts = Math.max(0, Math.min(10, current + delta));
+        setPutts({ ...putts, [currentHole]: newPutts });
+    };
+
+    const getCurrentPutts = () => putts[currentHole] ?? 2;
+    const getTotalPutts = () => Object.values(putts).reduce((a, b) => a + b, 0);
+
+    // Fairway functions (only for par 4/5)
+    const toggleFairway = () => {
+        const current = fairways[currentHole];
+        setFairways({ ...fairways, [currentHole]: !current });
+    };
+
+    const getFairwayStats = () => {
+        const par4or5Holes = holeData.filter(h => h.par >= 4).map(h => h.hole);
+        const tracked = par4or5Holes.filter(h => fairways[h] !== undefined);
+        const hit = tracked.filter(h => fairways[h]).length;
+        return { hit, total: tracked.length, possible: par4or5Holes.length };
+    };
+
+    // GIR functions
+    const toggleGreen = () => {
+        const current = greens[currentHole];
+        setGreens({ ...greens, [currentHole]: !current });
+    };
+
+    const getGIRStats = () => {
+        const tracked = Object.keys(greens).length;
+        const hit = Object.values(greens).filter(Boolean).length;
+        return { hit, total: tracked };
+    };
+
     const handleEndRound = () => {
         Alert.alert(
             'End Round?',
             `Finish your round at ${course.name}?`,
             [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'End Round', style: 'destructive', onPress: onEndRound }
+                {
+                    text: 'End Round',
+                    style: 'destructive',
+                    onPress: async () => {
+                        // Save round data to storage
+                        const totalScore = getTotalScore();
+                        const totalPar = getTotalPar();
+
+                        // Prepare holes array with detailed stats
+                        const holesData = holeData.map(hole => ({
+                            holeNumber: hole.hole,
+                            par: hole.par,
+                            score: scores[hole.hole] || hole.par,
+                            putts: putts[hole.hole],
+                            fairwayHit: hole.par >= 4 ? fairways[hole.hole] : undefined,
+                            greenInReg: greens[hole.hole],
+                        }));
+
+                        await saveRound({
+                            courseName: course.name,
+                            courseId: course.id,
+                            par: totalPar,
+                            totalScore: totalScore,
+                            holesPlayed: holeData.length,
+                            holes: holesData,
+                        });
+
+                        onEndRound();
+                    }
+                }
             ]
         );
     };
@@ -164,33 +245,21 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
     const scoreInfo = getScoreLabel(currentScore, currentHoleData.par);
 
     // Tab icons
+    // Tab icons
     const ScorecardIcon = ({ active }) => (
-        <Svg width={22} height={22} viewBox="0 0 100 100">
-            <Rect x="20" y="15" width="60" height="70" rx="5" fill="none" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="6" />
-            <Line x1="30" y1="35" x2="70" y2="35" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Line x1="30" y1="50" x2="70" y2="50" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Line x1="30" y1="65" x2="55" y2="65" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-        </Svg>
+        <MaterialCommunityIcons name={active ? "clipboard-text" : "clipboard-text-outline"} size={22} color={active ? '#58A6FF' : '#8B949E'} />
     );
 
     const RangefinderIcon = ({ active }) => (
-        <Svg width={22} height={22} viewBox="0 0 100 100">
-            <Circle cx="50" cy="50" r="35" fill="none" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="6" />
-            <Line x1="50" y1="20" x2="50" y2="35" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Line x1="50" y1="65" x2="50" y2="80" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Line x1="20" y1="50" x2="35" y2="50" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Line x1="65" y1="50" x2="80" y2="50" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="4" />
-            <Circle cx="50" cy="50" r="8" fill={active ? '#58A6FF' : '#8B949E'} />
-        </Svg>
+        <MaterialCommunityIcons name={active ? "target" : "target"} size={22} color={active ? '#58A6FF' : '#8B949E'} />
     );
 
     const MapIcon = ({ active }) => (
-        <Svg width={22} height={22} viewBox="0 0 100 100">
-            <Path d="M20 25 L40 15 L60 25 L80 15 L80 75 L60 85 L40 75 L20 85 Z"
-                fill="none" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="5" />
-            <Line x1="40" y1="15" x2="40" y2="75" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="3" />
-            <Line x1="60" y1="25" x2="60" y2="85" stroke={active ? '#58A6FF' : '#8B949E'} strokeWidth="3" />
-        </Svg>
+        <Ionicons name={active ? "map" : "map-outline"} size={22} color={active ? '#58A6FF' : '#8B949E'} />
+    );
+
+    const ARLensIcon = ({ active, size = 24 }) => (
+        <MaterialCommunityIcons name="camera-iris" size={size} color={active ? '#3FB950' : '#F0F6FC'} />
     );
 
     // Render Scorecard Tab
@@ -202,7 +271,7 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                     style={styles.holeNavBtn}
                     onPress={() => setCurrentHole(Math.max(1, currentHole - 1))}
                 >
-                    <Text style={styles.holeNavText}>◀</Text>
+                    <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
 
                 <View style={styles.holeInfo}>
@@ -227,7 +296,7 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                     style={styles.holeNavBtn}
                     onPress={() => setCurrentHole(Math.min(18, currentHole + 1))}
                 >
-                    <Text style={styles.holeNavText}>▶</Text>
+                    <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 
@@ -245,6 +314,75 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                 <TouchableOpacity style={styles.scoreBtn} onPress={() => updateScore(1)}>
                     <Text style={styles.scoreBtnText}>+</Text>
                 </TouchableOpacity>
+            </View>
+
+            {/* Enhanced Stats Row */}
+            <View style={styles.statsTrackingRow}>
+                {/* Putts */}
+                <View style={styles.statTracker}>
+                    <Text style={styles.statTrackerLabel}>PUTTS</Text>
+                    <View style={styles.statTrackerControls}>
+                        <TouchableOpacity style={styles.statBtn} onPress={() => updatePutts(-1)}>
+                            <Ionicons name="remove" size={18} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.statTrackerValue}>{getCurrentPutts()}</Text>
+                        <TouchableOpacity style={styles.statBtn} onPress={() => updatePutts(1)}>
+                            <Ionicons name="add" size={18} color="#FFFFFF" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Fairway (only for par 4/5) */}
+                {currentHoleData.par >= 4 && (
+                    <TouchableOpacity
+                        style={[styles.statToggle, fairways[currentHole] && styles.statToggleActive]}
+                        onPress={toggleFairway}
+                    >
+                        <MaterialCommunityIcons
+                            name="golf-tee"
+                            size={20}
+                            color={fairways[currentHole] ? '#FFFFFF' : '#8B949E'}
+                        />
+                        <Text style={[styles.statToggleText, fairways[currentHole] && styles.statToggleTextActive]}>
+                            FIR
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* GIR */}
+                <TouchableOpacity
+                    style={[styles.statToggle, greens[currentHole] && styles.statToggleActive]}
+                    onPress={toggleGreen}
+                >
+                    <Ionicons
+                        name="flag"
+                        size={18}
+                        color={greens[currentHole] ? '#FFFFFF' : '#8B949E'}
+                    />
+                    <Text style={[styles.statToggleText, greens[currentHole] && styles.statToggleTextActive]}>
+                        GIR
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Running Stats Summary */}
+            <View style={styles.runningStats}>
+                <View style={styles.runningStat}>
+                    <Text style={styles.runningStatValue}>{getTotalPutts() || '--'}</Text>
+                    <Text style={styles.runningStatLabel}>Putts</Text>
+                </View>
+                <View style={styles.runningStat}>
+                    <Text style={styles.runningStatValue}>
+                        {getFairwayStats().total > 0 ? `${getFairwayStats().hit}/${getFairwayStats().total}` : '--'}
+                    </Text>
+                    <Text style={styles.runningStatLabel}>FIR</Text>
+                </View>
+                <View style={styles.runningStat}>
+                    <Text style={styles.runningStatValue}>
+                        {getGIRStats().total > 0 ? `${getGIRStats().hit}/${getGIRStats().total}` : '--'}
+                    </Text>
+                    <Text style={styles.runningStatLabel}>GIR</Text>
+                </View>
             </View>
 
             {/* Totals */}
@@ -322,10 +460,9 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
             <View style={styles.tabContent}>
                 {/* Main Distance Display */}
                 <View style={styles.rangeDisplay}>
-                    <Svg width={180} height={180} viewBox="0 0 180 180">
-                        <Circle cx="90" cy="90" r="80" fill="none" stroke="#2E7D32" strokeWidth="8" />
-                        <Circle cx="90" cy="90" r="65" fill="none" stroke="#2E7D32" strokeWidth="2" opacity="0.4" />
-                    </Svg>
+                    <View style={styles.rangeCircleContainer}>
+                        <MaterialCommunityIcons name="target" size={160} color="rgba(46, 125, 50, 0.4)" />
+                    </View>
                     <View style={styles.rangeContent}>
                         <Text style={styles.rangeValue}>{currentHoleData.yards}</Text>
                         <Text style={styles.rangeUnit}>YARDS</Text>
@@ -569,6 +706,21 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                             </Marker>
                         )}
 
+                        {/* Ball Landing Position from AR */}
+                        {ballLandingPoint && (
+                            <Marker
+                                coordinate={ballLandingPoint}
+                                anchor={{ x: 0.5, y: 0.5 }}
+                            >
+                                <View style={styles.ballMarkerOuter}>
+                                    <View style={styles.ballMarkerInner} />
+                                    <View style={styles.ballLabel}>
+                                        <Text style={styles.ballLabelText}>{metersToYards(calculateDistance(location.latitude, location.longitude, ballLandingPoint.latitude, ballLandingPoint.longitude))}</Text>
+                                    </View>
+                                </View>
+                            </Marker>
+                        )}
+
                         {/* Player position - blue dot like pro apps */}
                         {location && (
                             <Marker
@@ -657,6 +809,16 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                                 />
                             )
                         ))}
+
+                        {/* Real-Time Live Tracer Line */}
+                        {animatedTracer.length > 1 && (
+                            <Polyline
+                                coordinates={animatedTracer}
+                                strokeColor="#3FB950"
+                                strokeWidth={3}
+                                lineDashPattern={null}
+                            />
+                        )}
                     </MapView>
 
                     {/* Distance overlay on map - center of green */}
@@ -668,6 +830,64 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                     <View style={styles.tapHint}>
                         <Text style={styles.tapHintText}>Tap for distance</Text>
                     </View>
+
+                    {/* Live Tracer Telemetry Overlay */}
+                    {isTracing && liveTelemetry && (
+                        <View style={styles.telemetryOverlay}>
+                            <View style={styles.telemetryItem}>
+                                <Text style={styles.telemetryLabel}>LIVE DISTANCE</Text>
+                                <Text style={styles.telemetryValue}>{liveTelemetry.distance} yds</Text>
+                            </View>
+                            <View style={styles.telemetryDivider} />
+                            <View style={styles.telemetryItem}>
+                                <Text style={styles.telemetryLabel}>HEIGHT</Text>
+                                <Text style={styles.telemetryValue}>{liveTelemetry.height} ft</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* AR Action Buttons (Floating) */}
+                    <View style={styles.arActionContainer}>
+                        {arExpanded && (
+                            <View style={styles.arOptions}>
+                                <TouchableOpacity
+                                    style={styles.arOptionBtn}
+                                    onPress={() => {
+                                        setArExpanded(false);
+                                        setArMode('tracking');
+                                    }}
+                                >
+                                    <View style={styles.arOptionIcon}>
+                                        <MaterialCommunityIcons name="golf" size={20} color="#3FB950" />
+                                    </View>
+                                    <Text style={styles.arOptionLabel}>Track Shot</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.arOptionBtn, { marginTop: 12 }]}
+                                    onPress={() => {
+                                        setArExpanded(false);
+                                        setArMode('putt');
+                                    }}
+                                >
+                                    <View style={[styles.arOptionIcon, { backgroundColor: 'rgba(88, 166, 255, 0.2)' }]}>
+                                        <MaterialCommunityIcons name="golf-tee" size={20} color="#58A6FF" />
+                                    </View>
+                                    <Text style={styles.arOptionLabel}>Read Putt</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.arToggleBtn, arExpanded && styles.arToggleBtnActive]}
+                            onPress={() => setArExpanded(!arExpanded)}
+                            activeOpacity={0.8}
+                        >
+                            <ARLensIcon active={arExpanded} />
+                            {arExpanded && <Text style={styles.arToggleText}>CLOSE</Text>}
+                            {!arExpanded && <View style={styles.arPulse} />}
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Bottom Navigation Bar */}
@@ -676,7 +896,7 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                         style={styles.navArrow}
                         onPress={() => { setTappedPoint(null); setDistanceToTap(null); setCurrentHole(Math.max(1, currentHole - 1)); }}
                     >
-                        <Text style={styles.navArrowText}>‹</Text>
+                        <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     <View style={styles.holeInfoBar}>
@@ -691,12 +911,22 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
                         style={styles.navArrow}
                         onPress={() => { setTappedPoint(null); setDistanceToTap(null); setCurrentHole(Math.min(18, currentHole + 1)); }}
                     >
-                        <Text style={styles.navArrowText}>›</Text>
+                        <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                 </View>
             </View>
         );
     };
+
+    // Show AR Putting Overlay when in putt mode
+    if (arMode === 'putt') {
+        return (
+            <ARPuttingOverlay
+                onClose={() => setArMode('none')}
+                distanceToHole={15} // Could calculate from rangefinder
+            />
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -748,6 +978,79 @@ export default function ActiveRoundScreen({ course, onEndRound }) {
             {activeTab === 'map' && renderHoleMap()}
             {activeTab === 'scorecard' && renderScorecard()}
             {activeTab === 'rangefinder' && renderRangefinder()}
+
+            {/* AR Overlays */}
+            {arMode === 'tracking' && (
+                <View style={StyleSheet.absoluteFill}>
+                    <CaptureScreen
+                        onAnalysisComplete={(data) => {
+                            setShotAnalysisData(data);
+                            setArMode('selector');
+                        }}
+                        onCancel={() => setArMode('none')}
+                    />
+                </View>
+            )}
+
+            {arMode === 'selector' && shotAnalysisData && (
+                <View style={StyleSheet.absoluteFill}>
+                    <ARShotSelector
+                        analysisData={shotAnalysisData}
+                        onSelectShot={(key, data) => {
+                            setArMode('none');
+
+                            // Update map with landing location
+                            if (data.landing_gps) {
+                                const landingCoord = {
+                                    latitude: data.landing_gps.lat,
+                                    longitude: data.landing_gps.lon
+                                };
+
+                                // Start Tracer Animation
+                                setBallLandingPoint(null);
+                                setAnimatedTracer([]);
+                                setIsTracing(true);
+
+                                let currentPoints = [];
+                                const totalPoints = data.points?.length || 0;
+
+                                // Animation loop to draw the tracer in "real time"
+                                if (totalPoints > 0) {
+                                    data.points.forEach((point, index) => {
+                                        setTimeout(() => {
+                                            const coord = {
+                                                latitude: point[0],
+                                                longitude: point[1]
+                                            };
+                                            currentPoints = [...currentPoints, coord];
+                                            setAnimatedTracer(currentPoints);
+
+                                            // Update live telemetry
+                                            setLiveTelemetry({
+                                                distance: Math.round(data.carry_distance_yards * (index / totalPoints)),
+                                                height: Math.round(point[2] * 3.28) // meters to feet
+                                            });
+
+                                            if (index === totalPoints - 1) {
+                                                setBallLandingPoint(landingCoord);
+                                                setIsTracing(false);
+                                                setLiveTelemetry(null);
+                                            }
+                                        }, index * 40); // 40ms per point playback
+                                    });
+                                } else {
+                                    // Fallback if no points data
+                                    setBallLandingPoint(landingCoord);
+                                    setIsTracing(false);
+                                }
+
+                                setTappedPoint(null); // Clear manual tap
+                            }
+                        }}
+                        onCancel={() => setArMode('none')}
+                    />
+                </View>
+            )}
         </View>
     );
 }
@@ -920,6 +1223,91 @@ const styles = StyleSheet.create({
     scoreLabel: {
         fontSize: 13,
         fontWeight: '700',
+    },
+    statsTrackingRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 16,
+        marginHorizontal: 16,
+    },
+    statTracker: {
+        alignItems: 'center',
+        backgroundColor: '#161B22',
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#21262D',
+    },
+    statTrackerLabel: {
+        color: '#8B949E',
+        fontSize: 10,
+        fontWeight: '600',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    statTrackerControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    statTrackerValue: {
+        color: '#F0F6FC',
+        fontSize: 22,
+        fontWeight: '700',
+        minWidth: 32,
+        textAlign: 'center',
+    },
+    statBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#21262D',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    statToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#161B22',
+        borderRadius: 10,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderWidth: 1,
+        borderColor: '#21262D',
+        gap: 8,
+    },
+    statToggleActive: {
+        backgroundColor: 'rgba(63, 185, 80, 0.2)',
+        borderColor: '#3FB950',
+    },
+    statToggleText: {
+        color: '#8B949E',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    statToggleTextActive: {
+        color: '#3FB950',
+    },
+    runningStats: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 24,
+        marginBottom: 16,
+    },
+    runningStat: {
+        alignItems: 'center',
+    },
+    runningStatValue: {
+        color: '#58A6FF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    runningStatLabel: {
+        color: '#8B949E',
+        fontSize: 10,
+        marginTop: 2,
     },
     totalsRow: {
         flexDirection: 'row',
@@ -1773,5 +2161,155 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
         marginLeft: 0,
         marginTop: -7,
+    },
+    // AR UI Styles
+    arActionContainer: {
+        position: 'absolute',
+        right: 16,
+        bottom: 120,
+        alignItems: 'flex-end',
+    },
+    arOptions: {
+        marginBottom: 16,
+        paddingRight: 4,
+    },
+    arOptionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(13, 17, 23, 0.9)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: 'rgba(48, 54, 61, 0.8)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    arOptionIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(63, 185, 80, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    arOptionLabel: {
+        color: '#F0F6FC',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    arToggleBtn: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#0D1117',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#3FB950',
+        shadowColor: '#3FB950',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    arToggleBtnActive: {
+        width: 'auto',
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        borderColor: '#8B949E',
+        shadowColor: '#000',
+    },
+    arToggleText: {
+        color: '#8B949E',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginLeft: 10,
+        letterSpacing: 1,
+    },
+    arPulse: {
+        position: 'absolute',
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        borderWidth: 2,
+        borderColor: 'rgba(63, 185, 80, 0.4)',
+    },
+    // Ball Marker Styles
+    ballMarkerOuter: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    ballMarkerInner: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+    },
+    ballLabel: {
+        position: 'absolute',
+        top: -25,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    ballLabelText: {
+        color: '#0D1117',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    // Telemetry Styles
+    telemetryOverlay: {
+        position: 'absolute',
+        top: 200,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(13, 17, 23, 0.9)',
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        borderWidth: 1,
+        borderColor: 'rgba(63, 185, 80, 0.5)',
+        shadowColor: '#3FB950',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    telemetryItem: {
+        alignItems: 'center',
+    },
+    telemetryLabel: {
+        color: '#8B949E',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    telemetryValue: {
+        color: '#F0F6FC',
+        fontSize: 20,
+        fontWeight: '900',
+    },
+    telemetryDivider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#30363D',
     },
 });

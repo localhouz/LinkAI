@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { CameraView } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Magnetometer, Gyroscope } from 'expo-sensors';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 
 const API_URL = 'http://192.168.1.168:5000';
@@ -16,6 +17,8 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
     const [gyroTilt, setGyroTilt] = useState(0);
     const [capturedCount, setCapturedCount] = useState(0);
     const [isMounted, setIsMounted] = useState(true);
+    const [showOnboarding, setShowOnboarding] = useState(true);
+    const [trackingMode, setTrackingMode] = useState('tripod'); // 'tripod' | 'cart'
 
     const cameraRef = useRef(null);
     const framesRef = useRef([]);
@@ -167,7 +170,8 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                 frames: capturedFrames,
                 gps: gpsData,
                 compass_heading: compassHeading,
-                gyro_tilt: gyroTilt
+                gyro_tilt: gyroTilt,
+                tracking_mode: trackingMode
             }, {
                 timeout: 90000,  // 90 seconds
                 headers: {
@@ -210,13 +214,108 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                 facing="back"
             />
 
+            {showOnboarding && (
+                <View style={styles.onboardingOverlay}>
+                    <View style={styles.onboardingCard}>
+                        <Text style={styles.onboardingTitle}>AR SETUP GUIDE</Text>
+
+                        {/* Mode Toggle */}
+                        <View style={styles.modeToggleContainer}>
+                            <TouchableOpacity
+                                style={[styles.modeTab, trackingMode === 'tripod' && styles.modeTabActive]}
+                                onPress={() => setTrackingMode('tripod')}
+                            >
+                                <MaterialCommunityIcons
+                                    name="cellphone"
+                                    size={20}
+                                    color={trackingMode === 'tripod' ? '#FFFFFF' : '#8B949E'}
+                                    style={{ marginRight: 8 }}
+                                />
+                                <Text style={[styles.modeTabText, trackingMode === 'tripod' && styles.modeTabTextActive]}>TRIPOD (DTL)</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modeTab, trackingMode === 'cart' && styles.modeTabActive]}
+                                onPress={() => setTrackingMode('cart')}
+                            >
+                                <MaterialCommunityIcons
+                                    name="golf-cart"
+                                    size={22}
+                                    color={trackingMode === 'cart' ? '#FFFFFF' : '#8B949E'}
+                                    style={{ marginRight: 8 }}
+                                />
+                                <Text style={[styles.modeTabText, trackingMode === 'cart' && styles.modeTabTextActive]}>CART (SIDE)</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Image
+                            source={trackingMode === 'tripod'
+                                ? require('./assets/ar_setup_guide.png')
+                                : require('./assets/ar_cart_setup_guide.png')}
+                            style={styles.setupImage}
+                            resizeMode="cover"
+                        />
+
+                        <View style={styles.onboardingSteps}>
+                            {trackingMode === 'tripod' ? (
+                                <>
+                                    <View style={styles.onboardingStep}>
+                                        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+                                        <Text style={styles.stepText}>Position phone 6-8 feet directly behind the ball.</Text>
+                                    </View>
+                                    <View style={styles.onboardingStep}>
+                                        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                                        <Text style={styles.stepText}>Align the red target dot with your golf ball.</Text>
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.onboardingStep}>
+                                        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+                                        <Text style={styles.stepText}>Mount phone to cart pillar or dash (viewing side-on).</Text>
+                                    </View>
+                                    <View style={styles.onboardingStep}>
+                                        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                                        <Text style={styles.stepText}>Ensure ball is in the center of the reticle at address.</Text>
+                                    </View>
+                                </>
+                            )}
+                            <View style={styles.onboardingStep}>
+                                <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+                                <Text style={styles.stepText}>Lock target and swing after the countdown.</Text>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.onboardingBtn}
+                            onPress={() => setShowOnboarding(false)}
+                        >
+                            <Text style={styles.onboardingBtnText}>START AR LENS</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
             <View style={styles.overlay}>
+                {/* Live AR HUD - Reticle */}
+                <View style={styles.reticleContainer}>
+                    <View style={styles.reticleCornerTopLeft} />
+                    <View style={styles.reticleCornerTopRight} />
+                    <View style={styles.reticleCornerBottomLeft} />
+                    <View style={styles.reticleCornerBottomRight} />
+                    <View style={styles.reticleCenter} />
+                </View>
+
                 <View style={styles.statusBox}>
+                    <View style={styles.liveIndicator}>
+                        <MaterialCommunityIcons name="broadcast" size={16} color="#3FB950" style={{ marginRight: 6 }} />
+                        <Text style={styles.liveText}>LIVE AR SCANNING</Text>
+                    </View>
+
                     <Text style={styles.statusText}>
-                        {isRecording ? `RECORDING ${capturedCount}/6` :
-                            isAnalyzing ? 'ANALYZING...' :
-                                countdown ? `${countdown}` :
-                                    'Ready'}
+                        {isRecording ? `LOCKING TRACK ${capturedCount}/6` :
+                            isAnalyzing ? 'AI PROCESSING...' :
+                                countdown ? `IMPACT IN ${countdown}` :
+                                    'AR LENS ACTIVE'}
                     </Text>
 
                     {gpsData && (
@@ -251,15 +350,24 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                             onPress={startCountdown}
                             disabled={!gpsData}
                         >
-                            <Text style={styles.recordButtonText}>
-                                {gpsData ? 'RECORD SWING' : 'Getting GPS...'}
-                            </Text>
+                            <View style={styles.arButtonContent}>
+                                <MaterialCommunityIcons
+                                    name={gpsData ? "target" : "crosshairs-question"}
+                                    size={24}
+                                    color="#FFFFFF"
+                                    style={{ marginRight: 10 }}
+                                />
+                                <Text style={styles.recordButtonText}>
+                                    {gpsData ? 'LOCK SHOT TARGET' : 'CALIBRATING GPS...'}
+                                </Text>
+                            </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.cancelButton}
                             onPress={onCancel}
                         >
+                            <Ionicons name="close-circle-outline" size={20} color="#8B949E" style={{ marginRight: 6 }} />
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
                     </View>
@@ -268,10 +376,9 @@ export default function CaptureScreen({ onAnalysisComplete, onCancel }) {
                 {!isRecording && !isAnalyzing && !countdown && (
                     <View style={styles.instructions}>
                         <Text style={styles.instructionText}>
-                            Point camera at ball{'\n'}
-                            Tap RECORD SWING{'\n'}
-                            Wait for countdown{'\n'}
-                            Swing when ready
+                            Align reticle with ball position{'\n'}
+                            Tap LOCK SHOT TARGET{'\n'}
+                            Maintain steady aim through impact
                         </Text>
                     </View>
                 )}
@@ -382,5 +489,192 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 24,
         textAlign: 'center',
+    },
+    reticleContainer: {
+        position: 'absolute',
+        top: '25%',
+        left: '10%',
+        right: '10%',
+        bottom: '35%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        pointerEvents: 'none',
+    },
+    reticleCornerTopLeft: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 40,
+        height: 40,
+        borderLeftWidth: 2,
+        borderTopWidth: 2,
+        borderColor: '#00B4D8',
+    },
+    reticleCornerTopRight: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 40,
+        height: 40,
+        borderRightWidth: 2,
+        borderTopWidth: 2,
+        borderColor: '#00B4D8',
+    },
+    reticleCornerBottomLeft: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: 40,
+        height: 40,
+        borderLeftWidth: 2,
+        borderBottomWidth: 2,
+        borderColor: '#00B4D8',
+    },
+    reticleCornerBottomRight: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 40,
+        height: 40,
+        borderRightWidth: 2,
+        borderBottomWidth: 2,
+        borderColor: '#00B4D8',
+    },
+    reticleCenter: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#F85149',
+    },
+    liveIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        backgroundColor: 'rgba(63, 185, 80, 0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(63, 185, 80, 0.3)',
+    },
+    liveDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#3FB950',
+        marginRight: 6,
+    },
+    liveText: {
+        color: '#3FB950',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    arButtonContent: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    // Onboarding Styles
+    onboardingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        zIndex: 1000,
+    },
+    onboardingCard: {
+        backgroundColor: '#161B22',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 340,
+        padding: 24,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#30363D',
+    },
+    onboardingTitle: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginBottom: 20,
+    },
+    modeToggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#0D1117',
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 20,
+        width: '100%',
+    },
+    modeTab: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: 6,
+    },
+    modeTabActive: {
+        backgroundColor: '#21262D',
+        borderWidth: 1,
+        borderColor: '#30363D',
+    },
+    modeTabText: {
+        color: '#8B949E',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    modeTabTextActive: {
+        color: '#3FB950',
+    },
+    setupImage: {
+        width: '100%',
+        height: 180,
+        borderRadius: 12,
+        marginBottom: 24,
+        backgroundColor: '#0D1117',
+    },
+    onboardingSteps: {
+        width: '100%',
+        marginBottom: 30,
+    },
+    onboardingStep: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    stepBadge: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#238636',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    stepBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    stepText: {
+        color: '#8B949E',
+        fontSize: 13,
+        flex: 1,
+        lineHeight: 18,
+    },
+    onboardingBtn: {
+        backgroundColor: '#238636',
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    onboardingBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
 });

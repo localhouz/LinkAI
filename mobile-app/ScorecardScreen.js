@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
-import Svg, { Circle, Path, Rect, Line, G } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ScorecardScreen({ onBack, courseName: propCourseName }) {
     const [currentHole, setCurrentHole] = useState(1);
@@ -79,7 +79,7 @@ export default function ScorecardScreen({ onBack, courseName: propCourseName }) 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
                     <Text style={styles.headerTitle}>Scorecard</Text>
@@ -95,7 +95,7 @@ export default function ScorecardScreen({ onBack, courseName: propCourseName }) 
                         style={styles.holeNavButton}
                         onPress={() => setCurrentHole(Math.max(1, currentHole - 1))}
                     >
-                        <Text style={styles.holeNavText}>◀</Text>
+                        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     <View style={styles.holeInfo}>
@@ -120,7 +120,7 @@ export default function ScorecardScreen({ onBack, courseName: propCourseName }) 
                         style={styles.holeNavButton}
                         onPress={() => setCurrentHole(Math.min(18, currentHole + 1))}
                     >
-                        <Text style={styles.holeNavText}>▶</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                 </View>
 
@@ -130,7 +130,7 @@ export default function ScorecardScreen({ onBack, courseName: propCourseName }) 
                         style={styles.scoreButton}
                         onPress={() => updateScore(-1)}
                     >
-                        <Text style={styles.scoreButtonText}>−</Text>
+                        <Ionicons name="remove" size={32} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     <View style={styles.scoreDisplay}>
@@ -144,7 +144,7 @@ export default function ScorecardScreen({ onBack, courseName: propCourseName }) 
                         style={styles.scoreButton}
                         onPress={() => updateScore(1)}
                     >
-                        <Text style={styles.scoreButtonText}>+</Text>
+                        <Ionicons name="add" size={32} color="#FFFFFF" />
                     </TouchableOpacity>
                 </View>
             </View>

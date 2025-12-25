@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
-import Svg, { Path, Circle, Rect, Line, G, Polygon } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function CourseMapScreen({ onBack, onPlayCourse }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -111,33 +111,15 @@ export default function CourseMapScreen({ onBack, onPlayCourse }) {
     };
 
     // Simple course hole preview
-    const HolePreview = ({ holeNumber }) => (
-        <Svg width={60} height={100} viewBox="0 0 60 100">
-            {/* Fairway */}
-            <Path
-                d="M 30 95 Q 25 60, 30 30 Q 35 20, 30 10"
-                fill="none"
-                stroke="#4CAF50"
-                strokeWidth="12"
-                strokeLinecap="round"
-            />
-            {/* Tee box */}
-            <Rect x="25" y="88" width="10" height="6" fill="#8B4513" rx="2" />
-            {/* Green */}
-            <Circle cx="30" cy="12" r="8" fill="#66BB6A" />
-            {/* Flag */}
-            <Line x1="30" y1="12" x2="30" y2="4" stroke="#1B5E20" strokeWidth="1" />
-            <Polygon points="30,4 38,7 30,10" fill="#f44336" />
-        </Svg>
+    const HolePreview = () => (
+        <View style={styles.holeIconContainer}>
+            <MaterialCommunityIcons name="golf" size={40} color="#4CAF50" />
+        </View>
     );
 
     // Location icon
     const LocationIcon = () => (
-        <Svg width={16} height={16} viewBox="0 0 100 100">
-            <Circle cx="50" cy="50" r="15" fill="#4CAF50" />
-            <Circle cx="50" cy="50" r="35" fill="none" stroke="#4CAF50" strokeWidth="4" opacity="0.5" />
-            <Circle cx="50" cy="50" r="50" fill="none" stroke="#4CAF50" strokeWidth="2" opacity="0.3" />
-        </Svg>
+        <MaterialCommunityIcons name="crosshairs-gps" size={18} color="#4CAF50" />
     );
 
     return (
@@ -145,7 +127,7 @@ export default function CourseMapScreen({ onBack, onPlayCourse }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Course Maps</Text>
                 <View style={styles.placeholder} />
@@ -244,7 +226,7 @@ export default function CourseMapScreen({ onBack, onPlayCourse }) {
                                 </View>
 
                                 <View style={styles.courseArrow}>
-                                    <Text style={styles.arrowText}>›</Text>
+                                    <Ionicons name="chevron-forward" size={24} color="#4CAF50" />
                                 </View>
                             </TouchableOpacity>
                         ))
@@ -396,6 +378,14 @@ const styles = StyleSheet.create({
     },
     coursePreview: {
         marginRight: 16,
+    },
+    holeIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(76, 175, 80, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     courseInfo: {
         flex: 1,

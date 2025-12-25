@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Animated, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCameraPermissions } from 'expo-camera';
-import Svg, { Path, Circle, Rect, G, Polygon } from 'react-native-svg';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 
 // Screens
 import SplashScreen from './SplashScreen';
@@ -15,72 +16,26 @@ import ActiveRoundScreen from './ActiveRoundScreen';
 import StatsScreen from './StatsScreen';
 import ProfileScreen from './ProfileScreen';
 import RoundsScreen from './RoundsScreen';
+import ClubBagScreen from './ClubBagScreen';
+import PracticeModeScreen from './PracticeModeScreen';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-// Premium SVG Icon Components
-const PlayGolfIcon = ({ size = 32, color = '#2E7D32' }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Rect x="48" y="15" width="4" height="60" fill={color} />
-    <Polygon points="52,15 75,28 52,41" fill="#f44336" />
-    <Circle cx="50" cy="80" r="12" fill={color} opacity="0.7" />
-    <Path d="M 20 85 Q 50 75, 80 85" stroke={color} strokeWidth="3" fill="none" opacity="0.5" />
-  </Svg>
-);
-
-const ShotTrackerIcon = ({ size = 32, color = '#2E7D32' }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Circle cx="50" cy="50" r="20" fill={color} opacity="0.9" />
-    <Circle cx="50" cy="50" r="35" fill="none" stroke={color} strokeWidth="3" strokeDasharray="5,5" />
-    <Path d="M 50 10 L 50 25" stroke={color} strokeWidth="3" strokeLinecap="round" />
-    <Path d="M 50 75 L 50 90" stroke={color} strokeWidth="3" strokeLinecap="round" />
-    <Path d="M 10 50 L 25 50" stroke={color} strokeWidth="3" strokeLinecap="round" />
-    <Path d="M 75 50 L 90 50" stroke={color} strokeWidth="3" strokeLinecap="round" />
-  </Svg>
-);
-
-const SettingsIcon = ({ size = 28, color = '#1B5E20' }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Circle cx="50" cy="50" r="15" fill="none" stroke={color} strokeWidth="6" />
-    <Circle cx="50" cy="50" r="30" fill="none" stroke={color} strokeWidth="4" opacity="0.4" />
-    <Circle cx="50" cy="15" r="6" fill={color} />
-    <Circle cx="50" cy="85" r="6" fill={color} />
-    <Circle cx="15" cy="50" r="6" fill={color} />
-    <Circle cx="85" cy="50" r="6" fill={color} />
-  </Svg>
-);
-
 // Navigation Icons
 const HomeIcon = ({ size = 24, active }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Path
-      d="M 50 20 L 20 50 L 30 50 L 30 80 L 70 80 L 70 50 L 80 50 Z"
-      fill={active ? '#3FB950' : '#8B949E'}
-    />
-  </Svg>
+  <Ionicons name={active ? "home" : "home-outline"} size={size} color={active ? '#3FB950' : '#8B949E'} />
 );
 
 const RoundsIcon = ({ size = 24, active }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Rect x="35" y="55" width="4" height="30" fill={active ? '#3FB950' : '#8B949E'} />
-    <Polygon points="39,55 55,62 39,69" fill={active ? '#3FB950' : '#8B949E'} />
-    <Circle cx="37" cy="30" r="15" fill="none" stroke={active ? '#3FB950' : '#8B949E'} strokeWidth="5" />
-  </Svg>
+  <MaterialCommunityIcons name={active ? "history" : "history"} size={size} color={active ? '#3FB950' : '#8B949E'} />
 );
 
 const StatsIcon = ({ size = 24, active }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Rect x="20" y="60" width="15" height="25" fill={active ? '#3FB950' : '#8B949E'} />
-    <Rect x="42" y="45" width="15" height="40" fill={active ? '#3FB950' : '#8B949E'} />
-    <Rect x="64" y="30" width="15" height="55" fill={active ? '#3FB950' : '#8B949E'} />
-  </Svg>
+  <Ionicons name={active ? "stats-chart" : "stats-chart-outline"} size={size} color={active ? '#3FB950' : '#8B949E'} />
 );
 
 const ProfileIcon = ({ size = 24, active }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    <Circle cx="50" cy="35" r="18" fill={active ? '#3FB950' : '#8B949E'} />
-    <Path d="M 20 85 Q 20 60, 50 60 T 80 85" fill={active ? '#3FB950' : '#8B949E'} />
-  </Svg>
+  <Ionicons name={active ? "person" : "person-outline"} size={size} color={active ? '#3FB950' : '#8B949E'} />
 );
 
 export default function App() {
@@ -141,6 +96,8 @@ export default function App() {
   const handleOpenStats = () => { setCurrentScreen('stats'); setActiveNav('stats'); };
   const handleOpenProfile = () => { setCurrentScreen('profile'); setActiveNav('profile'); };
   const handleOpenRounds = () => { setCurrentScreen('rounds'); setActiveNav('rounds'); };
+  const handleOpenClubBag = () => setCurrentScreen('clubbag');
+  const handleOpenPractice = () => setCurrentScreen('practice');
 
   const handleBackToMain = () => { setCurrentScreen('main'); setActiveNav('home'); };
 
@@ -243,6 +200,14 @@ export default function App() {
     return <RoundsScreen onBack={handleBackToMain} onStartRound={handlePlayGolf} />;
   }
 
+  if (currentScreen === 'clubbag') {
+    return <ClubBagScreen onBack={handleBackToMain} />;
+  }
+
+  if (currentScreen === 'practice') {
+    return <PracticeModeScreen onBack={handleBackToMain} />;
+  }
+
   // Main Golf App Dashboard
   return (
     <ImageBackground
@@ -328,25 +293,55 @@ export default function App() {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>PRACTICE TOOLS</Text>
 
+            <TouchableOpacity style={styles.featureCard} onPress={handleOpenPractice}>
+              <View style={styles.featureRow}>
+                <View style={styles.featureIconBox}>
+                  <MaterialCommunityIcons name="golf-tee" size={38} color="#3FB950" />
+                </View>
+                <View style={styles.featureInfo}>
+                  <Text style={styles.featureTitle}>Practice Mode</Text>
+                  <Text style={styles.featureSubtitle}>
+                    Track shots at the range, build your distance profile
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#3FB950" />
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.featureCard} onPress={handleOpenTracker}>
               <View style={styles.featureRow}>
                 <View style={styles.featureIconBox}>
-                  <ShotTrackerIcon size={40} color="#2E7D32" />
+                  <MaterialCommunityIcons name="target" size={40} color="#3FB950" />
                 </View>
                 <View style={styles.featureInfo}>
-                  <Text style={styles.featureTitle}>Range Shot Tracker</Text>
+                  <Text style={styles.featureTitle}>AR Shot Tracker</Text>
                   <Text style={styles.featureSubtitle}>
-                    Track shots on the practice range with AI ball detection
+                    AI-powered ball detection and trajectory analysis
                   </Text>
                 </View>
-                <Text style={styles.featureArrow}>›</Text>
+                <Ionicons name="chevron-forward" size={24} color="#3FB950" />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.featureCard} onPress={handleOpenClubBag}>
+              <View style={styles.featureRow}>
+                <View style={styles.featureIconBox}>
+                  <MaterialCommunityIcons name="bag-personal" size={36} color="#3FB950" />
+                </View>
+                <View style={styles.featureInfo}>
+                  <Text style={styles.featureTitle}>My Clubs</Text>
+                  <Text style={styles.featureSubtitle}>
+                    Manage your bag, track distances for each club
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#3FB950" />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.featureCard} onPress={handleOpenCalibration}>
               <View style={styles.featureRow}>
                 <View style={styles.featureIconBox}>
-                  <SettingsIcon size={40} color="#2E7D32" />
+                  <Ionicons name="settings-outline" size={38} color="#3FB950" />
                 </View>
                 <View style={styles.featureInfo}>
                   <Text style={styles.featureTitle}>Settings</Text>
@@ -354,7 +349,7 @@ export default function App() {
                     Configure camera, clubs, and preferences
                   </Text>
                 </View>
-                <Text style={styles.featureArrow}>›</Text>
+                <Ionicons name="chevron-forward" size={24} color="#3FB950" />
               </View>
             </TouchableOpacity>
           </View>
@@ -376,7 +371,7 @@ export default function App() {
 
           <TouchableOpacity style={styles.navItemCenter} onPress={handlePlayGolf}>
             <View style={styles.navCenterButton}>
-              <PlayGolfIcon size={36} color="#FFFFFF" />
+              <Ionicons name="golf" size={36} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
 
@@ -592,12 +587,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8B949E',
     lineHeight: 18,
-  },
-  featureArrow: {
-    fontSize: 26,
-    color: '#3FB950',
-    marginLeft: 8,
-    fontWeight: '300',
   },
   bottomNav: {
     flexDirection: 'row',
